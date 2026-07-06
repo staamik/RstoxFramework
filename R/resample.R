@@ -688,7 +688,7 @@ readBootstrapDataOne <- function(selectionOneTable, nc, BootstrapID = NA) {
     varListFullName <- unname(unlist(lapply(varList, function(x) lapply(x, function(y) apply(y, 1, paste, collapse = "/")))))
     notPresentInFile <- setdiff(requestedVariablesFullName, varListFullName)
     if(length(notPresentInFile)) {
-        stop("The following requested variables are not present in the file ", nc$filename, " (These variables can be added using the parameter OutputVariables of the function Bootstrap()): \n", paste(notPresentInFile, collapse = "\n"))
+        stop("The following requested variables are not present in the file ", nc$filename, " (These variables can be added using the parameter OutputVariables of the function Bootstrap(), or the function getOutputVariablesUsedInReport can be used to get a full list of required OutputVariables): \n", paste(notPresentInFile, collapse = "\n"))
     }
     
     # Get the nrow variable, which determines what to read, and which will be added as BootstrapID to the output table:

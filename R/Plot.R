@@ -212,6 +212,12 @@ PlotReportBootstrapOne <- function(plotArguments, ind = NULL) {
     
     maxPlottingVariable <- plotArguments$ReportBootstrapData[, max(get(plotArguments$PlottingVariableUpper), na.rm = TRUE)]
     if(plotArguments$AddCVToPlot) {
+        
+        # Error if the plotArguments$CVVariable is not given:
+        if(!length(plotArguments$CVVariable) || (length(plotArguments$CVVariable) && !nchar(plotArguments$CVVariable))) {
+            stop("The CVVariable is not given.")
+        }
+        
         maxCV <- plotArguments$ReportBootstrapData[, max(get(plotArguments$CVVariable), na.rm = TRUE)]
         cvScalingFactor <- maxPlottingVariable / maxCV
         plotArguments$ReportBootstrapData[, eval(plotArguments$CVVariable) := get(plotArguments$CVVariable) * cvScalingFactor]
