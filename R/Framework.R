@@ -5814,10 +5814,28 @@ runProcess <- function(
     
     # Apply the replaceData, which can be a function with first parameter the processOutput and additional parameters given in ..., or an actual object to replace the output by:
     #thisReplaceData <- replaceData[[process$processName]]
-    if(length(replaceData) && is.character(replaceData)) {
-        replaceData <- list(FunctionName = replaceData)
+    if(length(replaceData) == 1) {
+        if(is.character(replaceData)) {
+            replaceData <- list(FunctionName = replaceData)
+        }
+        else if(is.function(replaceData)) {
+            replaceData <- list(FunctionName = replaceData)
+        }
     }
-    if(is.list(replaceData) && !data.table::is.data.table(replaceData) && is.character(replaceData$FunctionName)) {
+    
+    # Check whether the replaceData has a function in FunctionName:
+    replaceData_hasFunction <- 
+        # A list:
+        is.list(replaceData) && !data.table::is.data.table(replaceData) && 
+        # ... and
+        ( 
+            # a string naming a function:
+            is.character(replaceData$FunctionName) || 
+            # ... or a function:
+            is.function(replaceData$FunctionName)
+        )
+    
+    if(replaceData_hasFunction) {
         
         # Add a message when replacing data using a function:
         message(
@@ -5825,7 +5843,12 @@ runProcess <- function(
             getProcessIndexFromProcessID(projectPath = projectPath, modelName = modelName, processID = processID), 
             ": ", 
             getProcessName(projectPath = projectPath, modelName = modelName, processID = processID), 
-            " using the function ", replaceData$FunctionName, ".",
+            if(is.function(replaceData$FunctionName)) 
+                " using the function given by replaceData$FunctionName"
+            else 
+                paste0(" using the function ", replaceData$FunctionName, 
+            "."),
+            
             appendLF = TRUE
         )
         
@@ -5872,6 +5895,8 @@ runProcess <- function(
         processOutput <- replaceData
     }
     
+    
+    
     # Clear memory to avoid memory leak when running parallel bootstrapping. NEVER remove this unless the performance has been thoroughly tested by running bootstrap on multiple large StoX projects sequentially, to give R a chance to pile up memory:
     #gc()
     
@@ -5890,7 +5915,7 @@ runProcess <- function(
             currentActiveProcessID = currentActiveProcessID, 
             processDirty = FALSE
         )
-
+    
         # If a valid output class, wrap the function output to a list named with the data type:
         if(isValidOutputDataClass(processOutput)) {
             processOutput <- list(processOutput)
@@ -5918,7 +5943,6 @@ runProcess <- function(
             # Set the propertyDirty flag to FALSE, as no change has been made to the UseProcessData flag:
             writeActiveProcessID(projectPath, modelName, propertyDirty = FALSE)
         }
-        
         
         # Write to memory files. Here we pass processOutput as input and get the processOutput as output, since in the case that the processOutput is a file path to a temporary NewCDF4 file (only relevant for the Bootstrap function for now) the file is copied to the projectSession folder and an attribute added to the file name:
         processOutput <- writeProcessOutputMemoryFiles(processOutput = processOutput, projectPath = projectPath, modelName = modelName, processID = process$processID)
@@ -7215,7 +7239,7 @@ writeStoxOutputOne <- function(processOutputOne, filePath, escape = TRUE) {
                 writeGPX_track_points(processOutputOne, filePath)
             }
             else {
-                writeGPX_waypoints(processOutputOne, filePath)
+                writeGPX_waypoint(processOutputOne, filePath)
             }
             
         }
@@ -7312,7 +7336,7 @@ writeGPX_track_points <- function(
 }
 
 
-writeGPX_waypoints <- function(
+writeGPX_waypoint <- function(
     x, 
     filePath, 
     layers = c("geometry", "Stratum", "name")
@@ -7329,6 +7353,27 @@ writeGPX_waypoints <- function(
         dataset_options = "GPX_USE_EXTENSIONS=YES"
     )
 }
+
+
+writeGPX_route_layer <- function(
+        x, 
+        filePath, 
+        layers = c("geometry", "name")
+) {
+    
+    # Keep only the specified layers:
+    x <- subset(x, select = layers)
+    
+    sf::st_write(
+        x,
+        dsn = filePath,
+        layer = "route_layer",
+        driver = "GPX", 
+        dataset_options = "GPX_USE_EXTENSIONS=YES"
+    )
+}
+
+
 
 
 ggsaveApplyDefaults <- function(x, filePath, overrideAttributes = list()) {
