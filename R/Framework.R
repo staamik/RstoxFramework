@@ -1843,8 +1843,9 @@ getDependentPackageVersion <- function(
     recursive = TRUE
 ) {
     
-    # Read the package table from the repos, using the first lib as the StoX GUI selects a folder in some cases on Windows and otherwise we can assume that the first should be used:
-    packageTable <- as.data.frame(utils::installed.packages(.libPaths()[1]), stringsAsFactors = FALSE)
+    # Read the package table from all libraries in .libPaths(), as getVersionStringOfPackage() does. The packages need not be in the first library, e.g. when a writable user library comes first and the packages are in a site library. Keep the first copy of each package, which is the one R loads, so the first library (which the StoX GUI selects in some cases on Windows) still wins when a package is in more than one library:
+    packageTable <- as.data.frame(utils::installed.packages(), stringsAsFactors = FALSE)
+    packageTable <- packageTable[!duplicated(packageTable$Package), , drop = FALSE]
     
     # tools::package_dependencies has some problems with one row package table on R 4.0, and it seems fair to require more than one package in the table:
     if(NROW(packageTable) > 1) {
